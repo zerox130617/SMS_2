@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="39dp"
+        android:text="Now playing："
+        android:textSize="24sp" />
+
+    <TextView
+        android:id="@+id/songtitle"
+        android:layout_width="match_parent"
+        android:layout_height="49dp"
+        android:autoSizeMinTextSize="12sp"
+        android:autoSizeTextType="uniform"
+        android:singleLine="false"
+        android:textSize="24sp" />
+
+    <view
+        android:id="@+id/youtube_player"
+        class="com.google.android.youtube.player.YouTubePlayerView"
+        android:layout_width="match_parent"
+        android:layout_height="144dp"
+        android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation" />
+
+    <Button
+        android:id="@+id/button_add_local"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="add to list/play" />
+
+    <EditText
+        android:id="@+id/songinput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+
+        android:hint="paste after v="
+        />
+
+    <Button
+        android:id="@+id/button_next_song"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="next song" />
+
+    <TextView
+        android:id="@+id/next_songtitle"
+        android:layout_width="match_parent"
+        android:layout_height="115dp"
+        android:textSize="24sp" />
+
+</LinearLayout>
