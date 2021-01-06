@@ -1,9 +1,7 @@
 sms youtube song request
 
 todo:
-resend sms back to (finished)
 skip playing song
-add to song list
 
 --------------------------------
 加入resend sms 

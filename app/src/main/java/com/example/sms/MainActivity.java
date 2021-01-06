@@ -1,57 +1,45 @@
 package com.example.sms;
 
-    import androidx.appcompat.app.AppCompatActivity;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.os.Handler;
+import android.speech.tts.TextToSpeech;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.util.Log;
-    import android.view.View;
-    import android.widget.Button;
-    import android.widget.EditText;
-    import android.widget.TextView;
-    import android.widget.Toast;
-
 import com.android.volley.Request;
-    import com.android.volley.RequestQueue;
-    import com.android.volley.Response;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
 import com.android.volley.VolleyError;
-    import com.android.volley.toolbox.JsonArrayRequest;
-    import com.android.volley.toolbox.JsonObjectRequest;
-    import com.android.volley.toolbox.StringRequest;
-    import com.android.volley.toolbox.Volley;
-    import com.google.android.youtube.player.YouTubeBaseActivity;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayerView;
 
-//import org.apache.commons.io.IOUtils;
-    import org.apache.commons.io.IOUtils;
-    import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-    import java.io.BufferedReader;
-    import java.io.IOException;
-    import java.io.InputStream;
-    import java.io.InputStreamReader;
-    import java.net.HttpURLConnection;
-    import java.net.MalformedURLException;
-    import java.net.URL;
-    import java.util.ArrayList;
-    import java.util.List;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
-    import okhttp3.OkHttpClient;
+//import org.apache.commons.io.IOUtils;
 
 public class MainActivity extends YouTubeBaseActivity {
     YouTubePlayerView youtuber;
     YouTubePlayer.OnInitializedListener mOnInitializedListener;
     private YouTubePlayer VT_player;
     RequestQueue requestQueue;
-
 
     private static final int MY_PERMISSIONS_REQUEST_RECEIVE_SMS=0;
     private static final String Tag="Main_activity";
@@ -68,6 +56,8 @@ public class MainActivity extends YouTubeBaseActivity {
     private Button play_btn;
     private Button next_song_btn;
     private List<String> videoList = new ArrayList<>();
+
+    private TextToSpeech tts;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,9 +70,11 @@ public class MainActivity extends YouTubeBaseActivity {
         next_title=(TextView)findViewById(R.id.next_songtitle);
         play_btn=(Button)findViewById(R.id.button_add_local);
         userinput=(EditText)findViewById(R.id.songinput);
-
         next_song_btn=(Button)findViewById(R.id.button_next_song);
 //      find view by id part end
+
+        createLanguageTTS();
+        Log.d("TTS", "created");
 //      -------------------
 
 //        check permission for sms part
@@ -92,11 +84,8 @@ public class MainActivity extends YouTubeBaseActivity {
 
             } else {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECEIVE_SMS}, MY_PERMISSIONS_REQUEST_RECEIVE_SMS);
-
             }
         }
-
-//      check permission for sms part end
 
 //      youtube init
         mOnInitializedListener=new YouTubePlayer.OnInitializedListener() {
@@ -164,7 +153,8 @@ public class MainActivity extends YouTubeBaseActivity {
 
     @Override
     public void onPaused() {
-
+        Log.d("onPaused", title.getText().toString());
+        //tts.speak(title.getText().toString(), TextToSpeech.QUEUE_FLUSH, null);
     }
 
     @Override
@@ -248,6 +238,15 @@ public class MainActivity extends YouTubeBaseActivity {
     }
 //
 
+    public void ReadMessage(String msg)
+    {
+        VT_player.pause();
+        //pause for 5 seconds to read message
+        //todo: detect message reading ends before resuming music
+        (new Handler()).postDelayed(() -> tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null), 2000);
+
+        (new Handler()).postDelayed(() -> VT_player.play(), 5000);
+    }
 
 //  get video title from url(json), no need to modify?
 //    url only respond with single json object
@@ -309,6 +308,23 @@ public class MainActivity extends YouTubeBaseActivity {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void createLanguageTTS()
+    {
+        if(tts == null)
+        {
+            tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+                @Override
+                public void onInit(int status) {
+                    Log.d("TTS", String.valueOf(status));
+                    if(status != TextToSpeech.ERROR) {
+                        Log.d("initTTS", "success");
+                        tts.setLanguage(Locale.TAIWAN);
+                    }
+                }
+            });
         }
     }
 }
