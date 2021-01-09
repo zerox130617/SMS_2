@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -42,6 +43,7 @@ public class MainActivity extends YouTubeBaseActivity {
     RequestQueue requestQueue;
 
     private static final int MY_PERMISSIONS_REQUEST_RECEIVE_SMS=0;
+    private static final int PERMISSION_SEND_SMS = 1;
     private static final String Tag="Main_activity";
     private String url="";
 
@@ -78,8 +80,17 @@ public class MainActivity extends YouTubeBaseActivity {
 //      -------------------
 
 //        check permission for sms part
+        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED)
+        {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
+
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, PERMISSION_SEND_SMS);
+            }
+
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-//            checkif denied permission
+//            check if denied permission
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECEIVE_SMS)) {
 
             } else {
@@ -129,7 +140,7 @@ public class MainActivity extends YouTubeBaseActivity {
                 {
                     int last = videoList.size() - 1;
                     Log.d("Main_activity", "size: " + videoList.size());
-                    if(last == -1 || (last >= 0 && !url.equals(videoList.get(last))))
+                    if(last == -1 || !url.equals(videoList.get(last)))
                     {
                         videoList.add(url);
                         if(videoList.size() == 1)
@@ -138,6 +149,15 @@ public class MainActivity extends YouTubeBaseActivity {
                         }
                     }
                 }
+            }
+        });
+
+        next_song_btn.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view)
+            {
+                int dur = VT_player.getDurationMillis();
+                VT_player.seekToMillis(dur - 1);
             }
         });
     }
@@ -197,25 +217,45 @@ public class MainActivity extends YouTubeBaseActivity {
     {
 //        check request code
         switch(requestCode)
-    {
-        case MY_PERMISSIONS_REQUEST_RECEIVE_SMS:
         {
-            if(grantResults.length>0&& grantResults[0]==PackageManager.PERMISSION_GRANTED)
+            case MY_PERMISSIONS_REQUEST_RECEIVE_SMS:
             {
-                Toast.makeText(this, "Thank", Toast.LENGTH_SHORT).show();
-            }
-            else
-            {
-                Toast.makeText(this, "access denied!", Toast.LENGTH_SHORT).show();
+                if(grantResults.length>0&& grantResults[0]==PackageManager.PERMISSION_GRANTED)
+                {
+                    Toast.makeText(this, "Thank", Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(this, "access denied!", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
+    protected void sendSMSMessage(String title, String phone_num, int index) {
+        String message1="Thank you for request, "+phone_num;
+        message1 += "\n You are #" + String.valueOf(index) + " in queue.";
+        String message2 = "Your song: " + title;
+        Log.d("SendSMS", title);
+        try {
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage(phone_num, null, message1, null, null);
+            smsManager.sendTextMessage(phone_num, null, message2, null, null);
+            Toast.makeText(getApplicationContext(), "SMS sent.",
+                    Toast.LENGTH_LONG).show();
+            Log.d("SendSMS", message1);
+        } catch (Exception e) {
+            Toast.makeText(getApplicationContext(),
+                    "SMS failed, please try again.",
+                    Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
     }
+    //    send sms part end
 // interface for sms receiver talk to main activity
 //    see below
 //    https://stackoverflow.com/questions/14643385/how-to-update-ui-in-a-broadcastreceiver/54364171#54364171
-    public void play_url(String result){
-                 // Calling method from Interface
+    public void play_url(String result, String phonenum){
+        Log.d("Main_activity", "size: " + videoList.size());
         url=result;
         if(!VT_player.isPlaying())
         {
@@ -225,8 +265,7 @@ public class MainActivity extends YouTubeBaseActivity {
         else
         {
             int last = videoList.size() - 1;
-            Log.d("Main_activity", "size: " + videoList.size());
-            if(last == -1 || (last >= 0 && !url.equals(videoList.get(last))))
+            if(last == -1 || !url.equals(videoList.get(last)))
             {
                 videoList.add(url);
                 if(videoList.size() == 1)
@@ -234,10 +273,11 @@ public class MainActivity extends YouTubeBaseActivity {
                     getTitleQuietly(url, true);
                 }
             }
+            else return;
         }
+        getTitleForSending(url, phonenum, videoList.size());
     }
 //
-
     public void ReadMessage(String msg)
     {
         VT_player.pause();
@@ -258,17 +298,12 @@ public class MainActivity extends YouTubeBaseActivity {
                         tempurl + "&format=json"
 
                 );
-//                String url_2="https://www.googleapis.com/youtube/v3/videos?id=" + youtubeUrl + "&key=" +
-//                         youtubeconfig.getApiKey()+
-//                        "&part=snippet,contentDetails,statistics,status";
-//                Log.d(Tag," :"+url_2);
                 JsonObjectRequest jsonArrayRequest = new JsonObjectRequest(Request.Method.GET, embededURL .toString(), null, new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
                         Log.d(Tag,"title:in");
-                        JSONObject json_o = response;
                         try {
-                                String name = json_o.getString("title");
+                                String name = response.getString("title");
                                 Log.d(Tag,"title:"+name);
                                 if(!nextSong)
                                 {
@@ -309,6 +344,40 @@ public class MainActivity extends YouTubeBaseActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void getTitleForSending(String youtubeUrl, String phonenum, int index) {
+        try {
+            if (youtubeUrl != null) {
+                String tempurl="HTTPS://www.youtube.com/watch?v="+youtubeUrl;
+                URL embededURL = new URL("HTTPS://www.youtube.com/oembed?url=" +
+                        tempurl + "&format=json");
+                JsonObjectRequest jsonArrayRequest = new JsonObjectRequest(Request.Method.GET, embededURL .toString(), null, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        JSONObject json_o = response;
+                        try {
+                            String name = json_o.getString("title");
+                            sendSMSMessage(name,phonenum,index);
+                        }
+                        catch (Exception w)
+                        {
+                            Log.d(Tag,"title:fail");
+                            Toast.makeText(MainActivity.this,w.getMessage(),Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this,error.getMessage(),Toast.LENGTH_LONG).show();
+                    }
+                });
+                requestQueue.add(jsonArrayRequest);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return;
     }
 
     private void createLanguageTTS()

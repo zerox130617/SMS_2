@@ -41,7 +41,17 @@ public class SMS_receiver extends BroadcastReceiver {
                     phonenum=message[i].getOriginatingAddress();
                 }
                 int where=-1;
-    //            when get a sms with $ytb, call interface play_url
+                if((where=msg.indexOf("$sr"))!=-1){
+                    Toast.makeText(context, "Message" +msg.substring(where,msg.length())+where, Toast.LENGTH_SHORT).show();
+                    this.abortBroadcast();
+                    Intent in = new Intent(context, play_song.class);
+                    in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    in.putExtra("num", phonenum);
+                    in.putExtra("msg", msg.substring(where+4,msg.length()));//command hardcoded I am lazy to parse string
+                    context.startActivity(in);
+                }
+                where=-1;
+                //            when get a sms with $ytb, call interface play_url
     //            (implement in mainactivity)
                 if((where = msg.indexOf("$ytb")) != -1){
                     String[] messages = msg.split("\\s+");
@@ -51,7 +61,7 @@ public class SMS_receiver extends BroadcastReceiver {
                     }
                     String url = messages[1];
                     if(MainActivity.getInstace()!=null) {
-                        MainActivity.getInstace().play_url(url);
+                        MainActivity.getInstace().play_url(url, phonenum);
                     }
                     else{
                         Toast.makeText(context, "Message" + url, Toast.LENGTH_SHORT).show();
